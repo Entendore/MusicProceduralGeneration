@@ -18,12 +18,17 @@ def clone_preset(src_filename: str, dest_filename: str) -> bool:
     shutil.copy(src_filename, dest_filename)
     return True
 
-def clone_preset_versioned(src_filename: str, folder: str, base_name: str) -> str:
+def clone_preset_versioned(
+    src_filename: str, folder: str, base_name: str, max_versions: int = 5
+) -> str:
     """
-    Clone a preset with automatic versioning.
-    Example: "MyPreset.json" -> "MyPreset_v1.json", "MyPreset_v2.json", ...
+    Clone a preset with automatic versioning and cleanup.
+    Keeps only the last `max_versions` backups.
     Returns the new backup filename.
     """
+    import re
+    import shutil
+
     if not os.path.exists(src_filename):
         raise FileNotFoundError(f"Source preset not found: {src_filename}")
 
@@ -38,24 +43,78 @@ def clone_preset_versioned(src_filename: str, folder: str, base_name: str) -> st
         f for f in os.listdir(folder) if pattern.match(f)
     ]
     
+    # Determine next version number
     if existing_versions:
-        # Determine next version number
         version_numbers = [int(pattern.match(f).group(1)) for f in existing_versions]
         next_version = max(version_numbers) + 1
     else:
         next_version = 1
 
+    # Create new backup
     new_name = f"{name_only}_v{next_version}.json"
     new_path = os.path.join(folder, new_name)
     shutil.copy(src_filename, new_path)
+
+    # Cleanup old versions beyond max_versions
+    if len(existing_versions) + 1 > max_versions:
+        # Sort existing versions by version number ascending
+        sorted_versions = sorted(existing_versions, key=lambda f: int(pattern.match(f).group(1)))
+        to_delete = sorted_versions[:len(existing_versions) + 1 - max_versions]
+        for f in to_delete:
+            os.remove(os.path.join(folder, f))
+
     return new_name
 
-def save_preset_file(filename, values):
-    """Save preset values as JSON"""
-    if not filename.endswith(".json"):
-        filename += ".json"
-    with open(filename, "w") as f:
+def save_preset_versioned(
+    values: dict,
+    folder: str,
+    base_name: str,
+    max_versions: int = 5
+) -> str:
+    """
+    Save a preset with automatic versioning and cleanup.
+    Keeps only the last `max_versions` backups.
+    Returns the filename of the saved preset.
+    """
+    import os
+    import json
+    import re
+
+    # Ensure folder exists
+    os.makedirs(folder, exist_ok=True)
+
+    # Ensure .json extension
+    if not base_name.endswith(".json"):
+        base_name += ".json"
+
+    # Find existing versions
+    name_only = base_name.replace(".json", "")
+    pattern = re.compile(rf"{re.escape(name_only)}_v(\d+)\.json")
+    existing_versions = [
+        f for f in os.listdir(folder) if pattern.match(f)
+    ]
+    
+    # Determine next version number
+    if existing_versions:
+        version_numbers = [int(pattern.match(f).group(1)) for f in existing_versions]
+        next_version = max(version_numbers) + 1
+    else:
+        next_version = 1
+
+    # Save new version
+    new_name = f"{name_only}_v{next_version}.json"
+    new_path = os.path.join(folder, new_name)
+    with open(new_path, "w") as f:
         json.dump(values, f, indent=4)
+
+    # Cleanup old versions beyond max_versions
+    if len(existing_versions) + 1 > max_versions:
+        sorted_versions = sorted(existing_versions, key=lambda f: int(pattern.match(f).group(1)))
+        to_delete = sorted_versions[:len(existing_versions) + 1 - max_versions]
+        for f in to_delete:
+            os.remove(os.path.join(folder, f))
+
+    return new_name
 
 def load_preset_file(filename):
     """Load preset values from JSON"""

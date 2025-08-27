@@ -93,6 +93,17 @@ class ProceduralMusicApp(QWidget):
         fname, _ = QFileDialog.getSaveFileName(self, "Save Preset", "", "JSON Files (*.json)")
         if fname:
             save_preset(fname, self.collect_values())
+    
+    def save_current_preset(self, preset_name: str):
+        """
+        Save the current preset with automatic versioning.
+        """
+        try:
+            values = self.get_current_preset_values()  # dict of all preset params
+            saved_name = save_preset_versioned(values, PRESET_FOLDER, preset_name, max_versions=5)
+            info(f"Preset saved: {saved_name}")
+        except Exception as e:
+            error(f"Failed to save preset: {e}")
 
     def load_preset(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Load Preset", "", "JSON Files (*.json)")

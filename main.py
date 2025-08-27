@@ -29,17 +29,19 @@ def load_and_validate_default_preset(window: ProceduralMusicApp):
         info(f"Default preset invalid, skipping load: {DEFAULT_PRESET}")
         return
 
-    # Versioned backup
+    # Versioned backup with cleanup (keep last 5)
     try:
-        backup_name = clone_preset_versioned(preset_path, PRESET_FOLDER, DEFAULT_PRESET)
+        backup_name = clone_preset_versioned(
+            preset_path, PRESET_FOLDER, DEFAULT_PRESET, max_versions=5
+        )
         info(f"Created versioned backup: {backup_name}")
     except Exception as e:
         error(f"Failed to create versioned backup: {e}")
 
-    # Load into app
+    # Load preset into app
     window.load_preset(DEFAULT_PRESET)
     info(f"Loaded default preset: {DEFAULT_PRESET}")
-
+    
 def main():
     try:
         # Ensure necessary directories
