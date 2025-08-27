@@ -1,6 +1,6 @@
 # app.py
 import sys
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog
+from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QLabel, QSpinBox, QDoubleSpinBox, QHBoxLayout, QFileDialog, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt
 from scene_manager import SceneManager
 from ui_builder import UIBuilder
@@ -49,6 +49,37 @@ class ProceduralMusicApp(QWidget):
         btn_next_scene = self.builder.add_button("Next Scene")
         btn_next_scene.clicked.connect(self.apply_next_scene)
 
+        self.builder.add_spacing(10)
+
+        # ---------- Scene Preview ----------
+        self.builder.add_title_label("Scene Preview")
+        preview_box, preview_layout = self.builder.add_groupbox("Upcoming Scenes")
+        nested = self.builder.nested_builder(preview_layout)
+
+        # List to show next 5 scenes
+        self.scene_list = QListWidget()
+        nested.layout.addWidget(self.scene_list)
+
+        # Controls for evolution parameters
+        self.builder.add_title_label("Scene Evolution Settings")
+        evolution_box, evolution_layout = self.builder.add_groupbox("Evolution Tweaks")
+        evo_nested = self.builder.nested_builder(evolution_layout)
+
+        # Example tweakable parameters
+        self.evolution_speed = evo_nested.add_synced_slider_float(
+            "Evolution Speed", 0.1, 5.0, 1.0, step=0.1
+        )
+        self.evolution_variation = evo_nested.add_synced_slider_float(
+            "Variation Strength", 0.0, 1.0, 0.5, step=0.05
+        )
+
+        # Button to refresh preview manually
+        btn_refresh_preview = evo_nested.add_button("Refresh Scene Preview")
+        btn_refresh_preview.clicked.connect(self.refresh_scene_preview)
+
+        # Automatically update preview when next scene is applied
+        self.apply_next_scene()  # initial preview
+
     # -------------------- Preset Handling --------------------
     def apply_random_preset(self):
         preset = random_preset(SCALES, INSTRUMENTS)
@@ -83,3 +114,21 @@ class ProceduralMusicApp(QWidget):
             "scale": self.scale_combo.currentText(),
             "instrument": self.inst_combo.currentText(),
         }
+    
+    # -------------------- Scene Preview --------------------
+    def refresh_scene_preview(self):
+        """Update the list widget to show the next 5 upcoming scenes."""
+        self.scene_list.clear()
+        upcoming_scenes = self.scene_manager.peek_next_scenes(5)  # assuming this method exists
+        for i, scene in enumerate(upcoming_scenes):
+            item_text = f"Scene {i+1}: Tempo={scene.get('tempo', '')}, Scale={scene.get('scale', '')}, Instrument={scene.get('instrument', '')}"
+            item = QListWidgetItem(item_text)
+            self.scene_list.addItem(item)
+
+    def apply_next_scene(self):
+        scene = self.scene_manager.next_scene(
+            speed=self.evolution_speed.spinbox.value(),
+            variation=self.evolution_variation.spinbox.value()
+        )
+        self.load_preset_values(scene)
+        self.refresh_scene_preview()

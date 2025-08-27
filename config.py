@@ -10,6 +10,15 @@ CHANNELS = 2               # Stereo output
 DURATION_CHUNK = 5         # seconds per procedural audio chunk
 
 # ==============================
+# Presets Settings
+# ==============================
+REQUIRED_PRESET_KEYS = [
+    "tempo", "scale", "instrument", "use_arpeggio",
+    "reverb", "delay", "chorus", "phaser", "stereo_widen",
+    "lowpass", "highpass"
+]
+
+# ==============================
 # Default Instrument List
 # ==============================
 INSTRUMENTS = [

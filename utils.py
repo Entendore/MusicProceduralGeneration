@@ -29,6 +29,12 @@ def list_files(folder: str, extensions: Optional[List[str]] = None, full_path: b
                 files.append(os.path.join(folder, f) if full_path else f)
     return files
 
+def safe_list_files(folder: str, extensions: Optional[List[str]] = None, full_path: bool = False, recursive: bool = False) -> List[str]:
+    """Ensure folder exists, then list files with optional extensions."""
+    if not os.path.exists(folder):
+        return []
+    from utils import list_files  # reuse existing list_files
+    return list_files(folder, extensions=extensions, full_path=full_path, recursive=recursive)
 
 # ==============================
 # Random Utilities
@@ -79,11 +85,25 @@ def seconds_to_hms(seconds: float, show_ms: bool = False, trim_hours: bool = Fal
     m = int((seconds % 3600) // 60)
     s = int(seconds % 60)
     ms = int((seconds % 1) * 1000)
+    
     if show_ms:
         time_str = f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
     else:
         time_str = f"{h:02d}:{m:02d}:{s:02d}"
-    return time_str if not trim_hours else time_str.lstrip("0").lstrip(":")
+
+    if trim_hours:
+        if h == 0:
+            time_str = f"{m:02d}:{s:02d}" + (f".{ms:03d}" if show_ms else "")
+    return time_str
+
+def humanize_list(items: list[str], conjunction: str = "and") -> str:
+    """Convert a list of strings into a human-readable list."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])} {conjunction} {items[-1]}"
+
 
 def safe_filename(name: str, replace_space: bool = True, collapse_underscores: bool = True) -> str:
     """Make a string safe for filenames."""
