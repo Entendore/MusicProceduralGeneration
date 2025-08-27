@@ -1,89 +1,43 @@
 # procedural_generator.py
 import numpy as np
-from scipy.signal import sawtooth
 import random
+from audio_utils import generate_tone, apply_pan
+from lfo import LayerLFO
+import config
 
 SAMPLE_RATE = 44100
 
 # ==============================
 # Musical Scales
 # ==============================
-SCALES = {
-    "major": [0, 2, 4, 5, 7, 9, 11],
-    "minor": [0, 2, 3, 5, 7, 8, 10],
-    "dorian": [0, 2, 3, 5, 7, 9, 10],
-    "mixolydian": [0, 2, 4, 5, 7, 9, 10],
-    "lydian": [0, 2, 4, 6, 7, 9, 11],
-    "phrygian": [0, 1, 3, 5, 7, 8, 10],
-    "locrian": [0, 1, 3, 5, 6, 8, 10]
-}
+SCALES = config.SCALES
 
 # ==============================
-# Instruments
+# Chord Formulas
 # ==============================
-def sine_wave(freq, duration):
-    t = np.linspace(0, duration, int(SAMPLE_RATE*duration), endpoint=False)
-    return np.sin(2*np.pi*freq*t)
-
-def square_wave(freq, duration):
-    t = np.linspace(0, duration, int(SAMPLE_RATE*duration), endpoint=False)
-    return np.sign(np.sin(2*np.pi*freq*t))
-
-def triangle_wave(freq, duration):
-    t = np.linspace(0, duration, int(SAMPLE_RATE*duration), endpoint=False)
-    return sawtooth(2*np.pi*freq*t, width=0.5)
-
-def saw_wave(freq, duration):
-    t = np.linspace(0, duration, int(SAMPLE_RATE*duration), endpoint=False)
-    return sawtooth(2*np.pi*freq*t)
-
-def fm_sine(freq, duration, mod_index=2.0, mod_freq=2.0):
-    t = np.linspace(0, duration, int(SAMPLE_RATE*duration), endpoint=False)
-    return np.sin(2*np.pi*freq*t + mod_index*np.sin(2*np.pi*mod_freq*t))
-
-def noise_pad(duration):
-    return np.random.uniform(-0.3, 0.3, int(SAMPLE_RATE*duration))
-
-INSTRUMENTS = {
-    "sine": sine_wave,
-    "square": square_wave,
-    "triangle": triangle_wave,
-    "sawtooth": saw_wave,
-    "fm_sine": fm_sine,
-    "noise_pad": noise_pad
-}
+CHORD_FORMULAS = config.CHORD_FORMULAS
 
 # ==============================
-# Note to Frequency
+# MIDI to Frequency
 # ==============================
-def note_to_freq(note: int, base_freq=440):
-    """
-    Convert MIDI note number to frequency in Hz.
-    note: MIDI number (e.g., 69 = A4)
-    """
-    return base_freq * 2 ** ((note - 69) / 12)
+def note_to_freq(note: int):
+    return 440 * 2 ** ((note - 69) / 12)
 
 # ==============================
-# Procedural Chord / Arpeggio Generation
+# Chord Generation
 # ==============================
-CHORD_FORMULAS = {
-    "major": [0, 4, 7],
-    "minor": [0, 3, 7],
-    "sus2": [0, 2, 7],
-    "sus4": [0, 5, 7],
-    "dim": [0, 3, 6],
-    "aug": [0, 4, 8]
-}
-
 def generate_chord(root_note: int, chord_type="minor", inversion=None):
     intervals = CHORD_FORMULAS.get(chord_type, [0, 4, 7])
-    notes = [(root_note + i) for i in intervals]
+    notes = [root_note + i for i in intervals]
     if inversion:
         for _ in range(inversion):
             note = notes.pop(0)
             notes.append(note + 12)
     return notes
 
+# ==============================
+# Melody Generation
+# ==============================
 def generate_melody(scale_name="minor", length=8, base_note=60):
     scale = SCALES.get(scale_name, SCALES["minor"])
     melody = []
@@ -94,55 +48,57 @@ def generate_melody(scale_name="minor", length=8, base_note=60):
     return melody
 
 # ==============================
-# Multi-layer Procedural Chunk Generator
+# Multi-layer Procedural Chunk
 # ==============================
-def generate_procedural_chunk(duration_sec, tempo=60, scale="minor", instrument="sine",
-                              use_arpeggio=True, return_layers=False):
+def generate_procedural_chunk(duration_sec, tempo=60, scale="minor",
+                              instrument="sine", use_arpeggio=True,
+                              return_layers=False):
     """
-    Generate multiple layers for procedural music chunk.
-    Returns either a mixed stereo audio or list of layers.
-    Each layer: Nx2 stereo numpy array
+    Generate 4 layers: drone, chords, melody, noise
+    Returns either mixed stereo audio or a list of stereo layers
     """
-    num_layers = 4  # drone, chords, melody, noise
+    total_samples = int(duration_sec * config.SAMPLE_RATE)
     layers = []
 
-    # --- Time grid ---
-    total_samples = int(duration_sec * SAMPLE_RATE)
-    t = np.linspace(0, duration_sec, total_samples, endpoint=False)
+    # Initialize LFOs for layers
+    layer_lfos = [LayerLFO() for _ in range(4)]
 
-    # --- Base Layer: Drone ---
-    drone_note = 48 + random.randint(0,12)
-    drone_wave = INSTRUMENTS.get(instrument, sine_wave)(note_to_freq(drone_note), duration_sec)
-    layers.append(np.stack([drone_wave, drone_wave], axis=1))
+    # --- Layer 0: Drone ---
+    drone_note = 48 + random.randint(0, 12)
+    drone_wave = generate_tone(note_to_freq(drone_note), duration_sec, instrument)
+    pan_val = layer_lfos[0].step(1/config.SAMPLE_RATE)["pan"]
+    layers.append(apply_pan(drone_wave, pan_val))
 
     # --- Layer 1: Chords ---
     root_note = 60
     chord_notes = generate_chord(root_note, chord_type=random.choice(["minor","major","sus2"]))
     chord_layer = np.zeros((total_samples,))
     for note in chord_notes:
-        chord_layer += INSTRUMENTS.get(instrument, sine_wave)(note_to_freq(note), duration_sec)
+        chord_layer += generate_tone(note_to_freq(note), duration_sec, instrument)
     chord_layer /= max(len(chord_notes), 1)
-    layers.append(np.stack([chord_layer, chord_layer], axis=1))
+    pan_val = layer_lfos[1].step(1/config.SAMPLE_RATE)["pan"]
+    layers.append(apply_pan(chord_layer, pan_val))
 
     # --- Layer 2: Melody / Arpeggio ---
     melody_notes = generate_melody(scale_name=scale, length=int(duration_sec * tempo / 60))
     melody_layer = np.zeros((total_samples,))
-    for note in melody_notes:
+    for idx, note in enumerate(melody_notes):
         note_dur = duration_sec / max(len(melody_notes),1)
-        start_idx = int(melody_notes.index(note) * note_dur * SAMPLE_RATE)
-        end_idx = start_idx + int(note_dur * SAMPLE_RATE)
+        start_idx = int(idx * note_dur * config.SAMPLE_RATE)
+        end_idx = start_idx + int(note_dur * config.SAMPLE_RATE)
         end_idx = min(end_idx, total_samples)
-        melody_wave = INSTRUMENTS.get(instrument, sine_wave)(note_to_freq(note), note_dur)
+        melody_wave = generate_tone(note_to_freq(note), note_dur, instrument)
         melody_layer[start_idx:end_idx] += melody_wave[:end_idx-start_idx]
-    layers.append(np.stack([melody_layer, melody_layer], axis=1))
+    pan_val = layer_lfos[2].step(1/config.SAMPLE_RATE)["pan"]
+    layers.append(apply_pan(melody_layer, pan_val))
 
     # --- Layer 3: Noise / Texture ---
-    noise_wave = noise_pad(duration_sec)
-    layers.append(np.stack([noise_wave, noise_wave], axis=1))
+    noise_wave = generate_tone(0, duration_sec, instrument="noise_pad")
+    pan_val = layer_lfos[3].step(1/config.SAMPLE_RATE)["pan"]
+    layers.append(apply_pan(noise_wave, pan_val))
 
+    # Return layers or mixed
     if return_layers:
         return layers
-    else:
-        mixed = np.sum(layers, axis=0)
-        mixed = np.clip(mixed, -1, 1)
-        return mixed
+    mixed = np.sum(layers, axis=0)
+    return np.clip(mixed, -1, 1)

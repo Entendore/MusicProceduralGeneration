@@ -1,17 +1,14 @@
-# audio_utils.py
 import numpy as np
 from fx_chain import FXChain
 from scipy.signal import lfilter
+import config
 
-SAMPLE_RATE = 44100
+SAMPLE_RATE = config.SAMPLE_RATE
 
 # ------------------------------
 # Stereo Panning
 # ------------------------------
 def apply_pan(signal: np.ndarray, pan: float) -> np.ndarray:
-    """
-    Convert mono signal to stereo with panning (-1 left, +1 right)
-    """
     pan = np.clip(pan, -1, 1)
     left = signal * np.sqrt(0.5 * (1 - pan))
     right = signal * np.sqrt(0.5 * (1 + pan))
@@ -73,9 +70,6 @@ def process_effects(audio: np.ndarray,
                     chorus_amount=0.0,
                     phaser_amount=0.0,
                     stereo_widen=0.0) -> np.ndarray:
-    """
-    Apply FX chain to stereo audio
-    """
     if audio.ndim == 1:
         audio = np.stack([audio, audio], axis=1)
 

@@ -1,4 +1,3 @@
-# fx_chain.py
 import numpy as np
 from scipy.signal import butter, lfilter
 
@@ -34,38 +33,22 @@ class FXChain:
     # Apply FX chain
     # ==============================
     def apply(self, audio: np.ndarray) -> np.ndarray:
-        """
-        Apply full FX chain to stereo audio (Nx2 array)
-        """
         if audio.ndim == 1:
             audio = np.stack([audio, audio], axis=1)
-
         processed = audio.copy()
 
-        # --- Reverb ---
         if self.reverb_amount > 0:
             processed = self._apply_reverb(processed, self.reverb_amount)
-
-        # --- Delay ---
         if self.delay_amount > 0:
             processed = self._apply_delay(processed, self.delay_amount)
-
-        # --- Chorus ---
         if self.chorus_amount > 0:
             processed = self._apply_chorus(processed, self.chorus_amount)
-
-        # --- Phaser ---
         if self.phaser_amount > 0:
             processed = self._apply_phaser(processed, self.phaser_amount)
-
-        # --- Stereo Widening ---
         if self.stereo_widen > 0:
             processed = self._apply_stereo_widen(processed, self.stereo_widen)
 
-        # --- Filtering ---
         processed = self._apply_filters(processed)
-
-        # Clip final audio
         return np.clip(processed, -1.0, 1.0)
 
     # ==============================
