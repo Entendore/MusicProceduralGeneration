@@ -7,7 +7,7 @@ import random
 from typing import Dict, List, Optional
 import config
 
-REQUIRED_PRESET_KEYS = config.REQUIRED_PRESETS_KEYS
+REQUIRED_PRESET_KEYS = config.REQUIRED_PRESET_KEYS
 
 def clone_preset(src_filename: str, dest_filename: str) -> bool:
     """Copy an existing preset file to a new filename safely."""
@@ -123,6 +123,10 @@ def load_preset_file(filename):
     with open(filename, "r") as f:
         return json.load(f)
 
+def save_preset(filename, preset_data):
+    """Save preset values to JSON"""
+    with open(filename, "w") as f:
+        json.dump(preset_data, f, indent=4)
 
 def list_presets(folder: str) -> List[str]:
     """Return all preset files in a folder"""
@@ -149,4 +153,5 @@ def random_preset(scales: Dict, instruments: List[str], tempo_range=(40, 160)) -
         "stereo_widen": random.randint(0, 100),
         "lowpass": random.randint(5000, 20000),
         "highpass": random.randint(20, 5000),
+        "evolving": random.choice([True, False])
     }

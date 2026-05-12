@@ -5,11 +5,12 @@ import sys
 # ==============================
 # Configure basic logging
 # ==============================
-logging.basicConfig(
-    level=logging.INFO,  # Default logging level
-    format='[%(levelname)s] %(message)s',
-    stream=sys.stdout
-)
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(levelname)s] %(message)s',
+        stream=sys.stdout
+    )
 
 # ==============================
 # Convenience functions

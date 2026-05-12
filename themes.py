@@ -71,6 +71,55 @@ QLabel {
     font-weight: bold;
 }
 
+QGroupBox {
+    font-weight: bold;
+    border: 1px solid #555555;
+    border-radius: 5px;
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 5px;
+}
+
+QTabWidget::pane {
+    border: 1px solid #444444;
+    background: #2d2d2d;
+}
+
+QTabBar::tab {
+    background: #2d2d2d;
+    color: #ffffff;
+    padding: 8px 16px;
+    border: 1px solid #444444;
+    border-bottom: none;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+QTabBar::tab:selected {
+    background: #3d3d3d;
+    border-color: #555555;
+}
+
+QStatusBar {
+    background: #2d2d2d;
+    color: #aaaaaa;
+}
+
+QProgressBar {
+    border: 1px solid #444444;
+    border-radius: 3px;
+    text-align: center;
+}
+
+QProgressBar::chunk {
+    background-color: #5a5a5a;
+    width: 10px;
+}
 """
 
 # ==============================

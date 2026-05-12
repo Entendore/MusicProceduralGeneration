@@ -2,6 +2,7 @@
 import os
 import wave
 from datetime import datetime
+import numpy as np
 
 class Recorder:
     def __init__(self, sample_rate=44100, channels=2, bit_depth=16, export_dir="exports"):
@@ -30,6 +31,13 @@ class Recorder:
         """Append a raw PCM frame (bytes) to recording buffer."""
         if self.recording:
             self.frames.append(frame_bytes)
+
+    def add_audio_data(self, audio_data: np.ndarray):
+        """Add numpy array audio data to recording."""
+        if self.recording:
+            # Convert to 16-bit PCM
+            audio_int16 = (audio_data * 32767).astype(np.int16)
+            self.frames.append(audio_int16.tobytes())
 
     def save_wav(self):
         """Save collected frames to a timestamped WAV file."""

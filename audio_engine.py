@@ -2,6 +2,7 @@
 import numpy as np
 from audio_utils import process_effects, apply_pan
 from procedural_generator import generate_procedural_chunk
+import config
 
 class AudioEngine:
     def __init__(self, layer_lfos, ui_refs):
@@ -29,7 +30,7 @@ class AudioEngine:
 
     def generate_chunk(self, duration):
         tempo = self.ui["tempo"].value()
-        if self.ui["evolving"].isChecked():
+        if self.ui["evolving"].isChecked() and "lfo_tempo" in self.ui:
             tempo += self.ui["lfo_tempo"].step(duration)
         tempo = max(int(tempo), 20)
 
@@ -68,11 +69,16 @@ class AudioEngine:
         stereo_widen = self.ui["stereo"].value()/100
 
         if self.ui["evolving"].isChecked():
-            reverb += self.ui["lfo_reverb"].step(duration)
-            delay += self.ui["lfo_delay"].step(duration)
-            chorus += self.ui["lfo_chorus"].step(duration)
-            phaser += self.ui["lfo_phaser"].step(duration)
-            stereo_widen += self.ui["lfo_stereo"].step(duration)
+            if "lfo_reverb" in self.ui:
+                reverb += self.ui["lfo_reverb"].step(duration)
+            if "lfo_delay" in self.ui:
+                delay += self.ui["lfo_delay"].step(duration)
+            if "lfo_chorus" in self.ui:
+                chorus += self.ui["lfo_chorus"].step(duration)
+            if "lfo_phaser" in self.ui:
+                phaser += self.ui["lfo_phaser"].step(duration)
+            if "lfo_stereo" in self.ui:
+                stereo_widen += self.ui["lfo_stereo"].step(duration)
 
         return process_effects(
             chunk,

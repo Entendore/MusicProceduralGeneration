@@ -1,3 +1,4 @@
+# scene_manager.py
 import random
 from presets import random_preset
 
@@ -7,10 +8,25 @@ class SceneManager:
         self.instruments = instruments
         self.evolve = evolve
         self.current_scene = random_preset(scales, instruments)
+        self.scene_history = [self.current_scene.copy()]
+        self.scene_future = []
 
     def next_scene(self):
         """Move to the next procedural scene (randomized)."""
-        self.current_scene = random_preset(self.scales, self.instruments)
+        if self.scene_future:
+            self.current_scene = self.scene_future.pop(0)
+        else:
+            self.current_scene = random_preset(self.scales, self.instruments)
+        
+        self.scene_history.append(self.current_scene.copy())
+        return self.current_scene
+
+    def previous_scene(self):
+        """Revert to the previous scene."""
+        if len(self.scene_history) > 1:
+            self.scene_future.insert(0, self.current_scene)
+            self.scene_history.pop()
+            self.current_scene = self.scene_history[-1].copy()
         return self.current_scene
 
     def evolve_scene(self):
@@ -33,3 +49,18 @@ class SceneManager:
 
         self.current_scene = new_scene
         return new_scene
+
+    def generate_scene_preview(self, count=5):
+        """Generate preview of upcoming scenes."""
+        preview = []
+        for _ in range(count):
+            preview.append(random_preset(self.scales, self.instruments))
+        return preview
+
+    def get_scene_timeline(self):
+        """Get the timeline of past, current and future scenes."""
+        return {
+            "past": self.scene_history[:-1],
+            "current": self.current_scene,
+            "future": self.scene_future
+        }

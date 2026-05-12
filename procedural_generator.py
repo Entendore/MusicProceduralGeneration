@@ -5,7 +5,7 @@ from audio_utils import generate_tone, apply_pan
 from lfo import LayerLFO
 import config
 
-SAMPLE_RATE = 44100
+SAMPLE_RATE = config.SAMPLE_RATE
 
 # ==============================
 # Musical Scales
